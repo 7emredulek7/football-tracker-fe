@@ -55,7 +55,7 @@ export const Layout = () => {
                             </>
                         ) : (
                             <Link to="/login" className="text-sm text-slate-400 hover:text-primary transition-colors">
-                                Yönetici Girişi
+                                Giriş Yap
                             </Link>
                         )}
                     </div>
