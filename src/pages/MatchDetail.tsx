@@ -160,7 +160,7 @@ export const MatchDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-[1fr_350px] gap-8">
                 <div>
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        İlk Yedi Tablosu
+                        Takım Kadrosu
                     </h2>
                     <div className="glass-panel p-2">
                         <FormationGrid lineup={match.lineup} players={players} />

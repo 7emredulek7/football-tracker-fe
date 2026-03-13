@@ -128,6 +128,7 @@ export const MatchEvents = () => {
                             min="0"
                             value={goalsFor}
                             onChange={e => setGoalsFor(parseInt(e.target.value) || 0)}
+                            onFocus={e => e.target.select()}
                             className="p-3 text-5xl w-24 text-center bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:border-success focus:ring-2 focus:ring-success/20 transition-all font-black"
                         />
                     </div>
@@ -139,6 +140,7 @@ export const MatchEvents = () => {
                             min="0"
                             value={goalsAgainst}
                             onChange={e => setGoalsAgainst(parseInt(e.target.value) || 0)}
+                            onFocus={e => e.target.select()}
                             className="p-3 text-5xl w-24 text-center bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:border-danger focus:ring-2 focus:ring-danger/20 transition-all font-black"
                         />
                     </div>
