@@ -6,15 +6,26 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { MatchDetail } from './pages/MatchDetail';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { SettingsEditor } from './pages/admin/SettingsEditor';
 import { MatchEditor } from './pages/admin/MatchEditor';
 import { MatchEvents } from './pages/admin/matches/MatchEvents';
+import { PlayerDashboard } from './pages/player/PlayerDashboard';
+import { PlayerRateMatch } from './pages/player/PlayerRateMatch';
 
-// Route Guard
+// Route Guards
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isOwner } = useAuth();
   if (!isOwner) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const PlayerRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isPlayer } = useAuth();
+  if (!isPlayer) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -28,6 +39,7 @@ function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="match/:id" element={<MatchDetail />} />
         <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
 
         {/* Protected Owner Routes */}
         <Route path="admin" element={
@@ -52,6 +64,19 @@ function AppRoutes() {
           <ProtectedRoute>
             <MatchEvents />
           </ProtectedRoute>
+        } />
+
+        {/* Protected Player Routes */}
+        <Route path="player" element={
+          <PlayerRoute>
+            <PlayerDashboard />
+          </PlayerRoute>
+        } />
+
+        <Route path="player/matches/:id/rate" element={
+          <PlayerRoute>
+            <PlayerRateMatch />
+          </PlayerRoute>
         } />
       </Route>
     </Routes>

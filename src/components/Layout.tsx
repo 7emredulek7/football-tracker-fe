@@ -1,9 +1,9 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Home } from 'lucide-react';
+import { LogOut, LayoutDashboard, Home, User } from 'lucide-react';
 
 export const Layout = () => {
-    const { isOwner, logout } = useAuth();
+    const { isOwner, isPlayer, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -33,6 +33,18 @@ export const Layout = () => {
                             <>
                                 <Link to="/admin" className="flex items-center gap-1 text-sm text-slate-50 hover:text-primary transition-colors">
                                     <LayoutDashboard size={16} /> Yönetim Paneli
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-1 text-sm text-danger hover:text-red-400 transition-colors p-1 rounded"
+                                >
+                                    <LogOut size={16} /> Çıkış Yap
+                                </button>
+                            </>
+                        ) : isPlayer ? (
+                            <>
+                                <Link to="/player" className="flex items-center gap-1 text-sm text-slate-50 hover:text-primary transition-colors">
+                                    <User size={16} /> Oyuncu Paneli
                                 </Link>
                                 <button
                                     onClick={handleLogout}

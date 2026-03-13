@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Settings, UserPlus, Play, Trophy, Edit2, Trash2 } from 'lucide-react';
+import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertDialog } from '../../components/AlertDialog';
@@ -20,6 +20,11 @@ export const AdminDashboard = () => {
 
     // Alert State
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
+
+    // Invite state
+    const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+    const [invitePlayerName, setInvitePlayerName] = useState<string>('');
+    const [copied, setCopied] = useState(false);
 
     if (!isOwner) {
         return <div className="text-center p-16">Erişim Reddedildi. Yönetici girişi gereklidir.</div>;
@@ -93,6 +98,23 @@ export const AdminDashboard = () => {
         setDeletingPlayer(p);
     };
 
+    const handleInvite = async (p: any) => {
+        try {
+            const res = await apiClient.post('/invitations', { playerId: p.id });
+            setInviteUrl(res.url);
+            setInvitePlayerName(`${p.firstName} ${p.lastName}`);
+            setCopied(false);
+        } catch (err: any) {
+            setAlertMessage(err.message || 'Davet oluşturulamadı.');
+        }
+    };
+
+    const handleCopyInvite = () => {
+        if (!inviteUrl) return;
+        navigator.clipboard.writeText(inviteUrl);
+        setCopied(true);
+    };
+
     return (
         <div>
             <div className="page-header">
@@ -115,6 +137,29 @@ export const AdminDashboard = () => {
                 message={alertMessage || ''}
                 onClose={() => setAlertMessage(null)}
             />
+
+            {inviteUrl && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="glass-panel max-w-lg w-full">
+                        <h2 className="text-xl font-bold mb-2">Davet Bağlantısı</h2>
+                        <p className="text-slate-400 text-sm mb-4">
+                            <span className="text-white font-semibold">{invitePlayerName}</span> için davet bağlantısı oluşturuldu. Bu bağlantı 72 saat geçerlidir.
+                        </p>
+                        <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-slate-300 break-all mb-4">
+                            {inviteUrl}
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCopyInvite}
+                                className="btn-primary flex items-center gap-2 flex-1"
+                            >
+                                {copied ? <><CheckCheck size={16} /> Kopyalandı</> : <><Copy size={16} /> Kopyala</>}
+                            </button>
+                            <button onClick={() => setInviteUrl(null)} className="btn-secondary">Kapat</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6 mb-12">
                 <Link to="/admin/matches/new" className="glass-panel flex flex-col items-center justify-center gap-4 p-8 text-center no-underline hover:-translate-y-1 transition-transform cursor-pointer">
@@ -185,6 +230,7 @@ export const AdminDashboard = () => {
                                 <th className="p-2 sm:p-4 text-slate-400 font-medium text-sm sm:text-base">İsim</th>
                                 <th className="p-2 sm:p-4 text-slate-400 font-medium text-sm sm:text-base">Forma No</th>
                                 <th className="p-2 sm:p-4 text-slate-400 font-medium text-sm sm:text-base">Durum</th>
+                                <th className="p-2 sm:p-4 text-slate-400 font-medium text-sm sm:text-base">Hesap</th>
                                 <th className="p-2 sm:p-4 text-slate-400 font-medium text-right text-sm sm:text-base">İşlemler</th>
                             </tr>
                         </thead>
@@ -192,7 +238,7 @@ export const AdminDashboard = () => {
                             {players.map(p => (
                                 <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                     {editingPlayerId === p.id ? (
-                                        <td className="p-4" colSpan={4}>
+                                        <td className="p-4" colSpan={5}>
                                             <form onSubmit={handleSaveEdit} className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4 items-end bg-white/5 p-4 rounded-xl border border-white/10">
                                                 <div>
                                                     <label className="block text-xs text-slate-400 mb-1">Ad</label>
@@ -224,6 +270,23 @@ export const AdminDashboard = () => {
                                                 <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold ${p.isGuest ? 'bg-blue-500/20 text-accent' : 'bg-green-500/20 text-primary'}`}>
                                                     {p.isGuest ? 'Misafir' : 'Kadro'}
                                                 </span>
+                                            </td>
+                                            <td className="p-2 sm:p-4">
+                                                {!p.isGuest && (
+                                                    p.userId ? (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-purple-500/20 text-purple-300">
+                                                            Kayıtlı
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleInvite(p)}
+                                                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
+                                                            title="Davet Gönder"
+                                                        >
+                                                            <Mail size={13} /> Davet Gönder
+                                                        </button>
+                                                    )
+                                                )}
                                             </td>
                                             <td className="p-2 sm:p-4 text-right whitespace-nowrap">
                                                 <button onClick={() => handleEditClick(p)} className="p-1.5 sm:p-2 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 mr-1 sm:mr-2 transition-colors inline-block" title="Düzenle">

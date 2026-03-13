@@ -19,7 +19,7 @@ export const Login = () => {
         try {
             const { token, role } = await apiClient.post('/auth/login', { email, password });
             login(token, role);
-            navigate('/admin');
+            navigate(role === 'player' ? '/player' : '/admin');
         } catch (err: any) {
             setError(err.message || 'Giriş başarısız oldu.');
         } finally {
@@ -31,7 +31,7 @@ export const Login = () => {
         <div className="max-w-[400px] mx-auto mt-16">
             <div className="glass-panel">
                 <h1 className="page-title text-center text-3xl mb-8">
-                    Yönetici Girişi
+                    Giriş Yap
                 </h1>
 
                 {error && (
