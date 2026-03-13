@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck } from 'lucide-react';
+import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck, Link2, UserCheck } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertDialog } from '../../components/AlertDialog';
 
 export const AdminDashboard = () => {
-    const { isOwner } = useAuth();
+    const { isOwner, playerId, login } = useAuth();
     const [players, setPlayers] = useState<any[]>([]);
     const [showAddPlayer, setShowAddPlayer] = useState(false);
     const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', number: '', isGuest: false });
@@ -113,6 +113,16 @@ export const AdminDashboard = () => {
         if (!inviteUrl) return;
         navigator.clipboard.writeText(inviteUrl);
         setCopied(true);
+    };
+
+    const handleLinkToOwner = async (p: any) => {
+        try {
+            const res = await apiClient.put(`/auth/link-player/${p.id}`, {});
+            login(res.token, 'owner');
+            fetchPlayers();
+        } catch (err: any) {
+            setAlertMessage(err.message || 'Hesap bağlanamadı.');
+        }
     };
 
     return (
@@ -273,18 +283,31 @@ export const AdminDashboard = () => {
                                             </td>
                                             <td className="p-2 sm:p-4">
                                                 {!p.isGuest && (
-                                                    p.userId ? (
+                                                    p.id === playerId ? (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-emerald-500/20 text-primary flex items-center gap-1 w-fit">
+                                                            <UserCheck size={11} /> Benim Hesabım
+                                                        </span>
+                                                    ) : p.userId ? (
                                                         <span className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-purple-500/20 text-purple-300">
                                                             Kayıtlı
                                                         </span>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => handleInvite(p)}
-                                                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
-                                                            title="Davet Gönder"
-                                                        >
-                                                            <Mail size={13} /> Davet Gönder
-                                                        </button>
+                                                        <div className="flex flex-col gap-1">
+                                                            <button
+                                                                onClick={() => handleInvite(p)}
+                                                                className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary transition-colors"
+                                                                title="Davet Gönder"
+                                                            >
+                                                                <Mail size={13} /> Davet Gönder
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleLinkToOwner(p)}
+                                                                className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400 transition-colors"
+                                                                title="Hesabıma Bağla"
+                                                            >
+                                                                <Link2 size={13} /> Hesabıma Bağla
+                                                            </button>
+                                                        </div>
                                                     )
                                                 )}
                                             </td>

@@ -13,7 +13,7 @@ export const MatchEvents = () => {
     // Local state for Events
     const [goalsFor, setGoalsFor] = useState(0);
     const [goalsAgainst, setGoalsAgainst] = useState(0);
-    const [events, setEvents] = useState<{ type: string, playerId: string, assistPlayerId?: string }[]>([]);
+    const [playerStats, setPlayerStats] = useState<Record<string, { goals: number; assists: number }>>({});
 
     const [ratings, setRatings] = useState<Record<string, number>>({});
 
@@ -30,13 +30,16 @@ export const MatchEvents = () => {
                 setMatch(m);
                 setPlayers(p || []);
 
-                // initialize default rating 6 for players who played
+                // initialize default rating 6 and zero goals/assists for players who played
                 if (m && m.lineup) {
                     const initRatings: Record<string, number> = {};
+                    const initStats: Record<string, { goals: number; assists: number }> = {};
                     m.lineup.forEach((l: any) => {
                         initRatings[l.playerId] = 6;
+                        initStats[l.playerId] = { goals: 0, assists: 0 };
                     });
                     setRatings({ ...initRatings });
+                    setPlayerStats({ ...initStats });
                 }
             } catch (err) {
                 console.error('Failed to load match for events', err);
@@ -46,17 +49,6 @@ export const MatchEvents = () => {
     }, [id]);
 
     if (!match) return <div className="p-16 text-center text-slate-400">Maç bilgileri yükleniyor...</div>;
-
-    const handleAddGoalEvent = () => {
-        setEvents([...events, { type: 'goal', playerId: '' }]);
-    };
-
-    const updateEventPlayer = (idx: number, field: 'playerId' | 'assistPlayerId', value: string) => {
-        const newEvents = [...events];
-        if (field === 'playerId') newEvents[idx].playerId = value;
-        if (field === 'assistPlayerId') newEvents[idx].assistPlayerId = value;
-        setEvents(newEvents);
-    };
 
     const handleSaveAll = async () => {
         setIsSaving(true);
@@ -71,10 +63,14 @@ export const MatchEvents = () => {
                 result: result
             });
 
-            // 2. Filter partial events
-            const validEvents = events.filter(e => e.playerId !== '');
-            if (validEvents.length > 0) {
-                await apiClient.post(`/matches/${id}/events`, validEvents);
+            // 2. Expand per-player stats into individual events
+            const expandedEvents: { type: string; playerId: string }[] = [];
+            Object.entries(playerStats).forEach(([playerId, stats]) => {
+                for (let i = 0; i < stats.goals; i++) expandedEvents.push({ type: 'goal', playerId });
+                for (let i = 0; i < stats.assists; i++) expandedEvents.push({ type: 'assist', playerId });
+            });
+            if (expandedEvents.length > 0) {
+                await apiClient.post(`/matches/${id}/events`, expandedEvents);
             }
 
             // 3. Save ratings
@@ -147,50 +143,40 @@ export const MatchEvents = () => {
                 </div>
             </div>
 
-            {/* Part 2: Events */}
+            {/* Part 2: Goals & Assists per player */}
             <div className="glass-panel mb-8">
-                <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-2">
-                    <h2 className="text-xl font-bold">Gol Olayları</h2>
-                    <button onClick={handleAddGoalEvent} className="btn-secondary py-1.5 px-3 text-sm flex items-center gap-1 border border-white/10 hover:bg-white/5">
-                        <span className="text-lg leading-none">+</span> Gol Ekle
-                    </button>
+                <h2 className="text-xl font-bold mb-6 border-b border-white/10 pb-2">Gol ve Asistler</h2>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+                    {activePlayers.map(p => (
+                        <div key={p.id} className="bg-black/20 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                            <div className="font-semibold mb-3">{p.firstName} {p.lastName}</div>
+                            <div className="flex gap-3">
+                                <div className="flex-1 text-center">
+                                    <label className="block text-xs text-success font-bold uppercase tracking-wider mb-1.5">Goller</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={playerStats[p.id]?.goals ?? 0}
+                                        onChange={e => setPlayerStats(prev => ({ ...prev, [p.id]: { ...prev[p.id], goals: parseInt(e.target.value) || 0 } }))}
+                                        onFocus={e => e.target.select()}
+                                        className="w-full p-2 text-center bg-white/10 text-white border border-white/20 rounded-lg outline-none focus:border-success focus:ring-1 focus:ring-success/20 font-bold text-xl transition-all"
+                                    />
+                                </div>
+                                <div className="flex-1 text-center">
+                                    <label className="block text-xs text-primary font-bold uppercase tracking-wider mb-1.5">Asistler</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={playerStats[p.id]?.assists ?? 0}
+                                        onChange={e => setPlayerStats(prev => ({ ...prev, [p.id]: { ...prev[p.id], assists: parseInt(e.target.value) || 0 } }))}
+                                        onFocus={e => e.target.select()}
+                                        className="w-full p-2 text-center bg-white/10 text-white border border-white/20 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-bold text-xl transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-
-                {events.length === 0 && <p className="text-slate-400 italic text-sm">Henüz gol eklenmedi.</p>}
-
-                {events.map((ev, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row gap-4 items-end mb-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                        <div className="flex-1 w-full">
-                            <label className="block text-sm text-slate-400 mb-1.5 font-medium">Golü Atan</label>
-                            <select
-                                className="input-field !mb-0"
-                                value={ev.playerId}
-                                onChange={e => updateEventPlayer(idx, 'playerId', e.target.value)}
-                            >
-                                <option value="">Oyuncu Seç...</option>
-                                {activePlayers.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
-                            </select>
-                        </div>
-                        <div className="flex-1 w-full">
-                            <label className="block text-sm text-slate-400 mb-1.5 font-medium">Asist (İsteğe Bağlı)</label>
-                            <select
-                                className="input-field !mb-0"
-                                value={ev.assistPlayerId || ''}
-                                onChange={e => updateEventPlayer(idx, 'assistPlayerId', e.target.value)}
-                            >
-                                <option value="">Yok</option>
-                                {activePlayers.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
-                            </select>
-                        </div>
-                        <button
-                            onClick={() => setEvents(events.filter((_, i) => i !== idx))}
-                            className="bg-transparent border-none text-danger p-3 cursor-pointer hover:bg-danger/10 rounded-lg transition-colors ms-auto sm:ms-0"
-                            title="Gölü Sil"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                ))}
             </div>
 
             {/* Part 3: Ratings */}

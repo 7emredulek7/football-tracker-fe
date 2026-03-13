@@ -169,26 +169,39 @@ export const MatchDetail = () => {
 
                 <div className="flex flex-col gap-8">
                     <div className="glass-panel p-6">
-                        <h2 className="text-lg font-bold mb-4 border-b border-white/10 pb-2">Maç Olayları (Goller)</h2>
-                        {match.events && match.events.length > 0 ? (
-                            <ul className="flex flex-col gap-3">
-                                {match.events.map((ev: any, i: number) => (
-                                    <li key={i} className="flex gap-3 items-center bg-white/5 p-3 rounded-lg border border-white/5">
-                                        <span className="text-xl">⚽</span>
-                                        <div>
-                                            <div className="font-bold text-slate-100">{getPlayerName(ev.playerId)}</div>
-                                            {ev.assistPlayerId && (
-                                                <div className="text-xs text-primary font-medium mt-0.5">
-                                                    Asist: {getPlayerName(ev.assistPlayerId)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-slate-400 text-sm italic">Gol kaydedilmedi.</p>
-                        )}
+                        <h2 className="text-lg font-bold mb-4 border-b border-white/10 pb-2">Gol ve Asistler</h2>
+                        {(() => {
+                            const stats: Record<string, { goals: number; assists: number }> = {};
+                            (match.events || []).forEach((ev: any) => {
+                                if (ev.type === 'goal') {
+                                    if (!stats[ev.playerId]) stats[ev.playerId] = { goals: 0, assists: 0 };
+                                    stats[ev.playerId].goals++;
+                                    if (ev.assistPlayerId) {
+                                        if (!stats[ev.assistPlayerId]) stats[ev.assistPlayerId] = { goals: 0, assists: 0 };
+                                        stats[ev.assistPlayerId].assists++;
+                                    }
+                                } else if (ev.type === 'assist') {
+                                    if (!stats[ev.playerId]) stats[ev.playerId] = { goals: 0, assists: 0 };
+                                    stats[ev.playerId].assists++;
+                                }
+                            });
+                            const entries = Object.entries(stats);
+                            return entries.length > 0 ? (
+                                <ul className="flex flex-col gap-2">
+                                    {entries.map(([pid, s]) => (
+                                        <li key={pid} className="flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/5">
+                                            <span className="font-semibold text-slate-100">{getPlayerName(pid)}</span>
+                                            <div className="flex gap-3 text-sm font-bold">
+                                                {s.goals > 0 && <span className="text-success">⚽ {s.goals}</span>}
+                                                {s.assists > 0 && <span className="text-primary">🎯 {s.assists}</span>}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-slate-400 text-sm italic">Gol kaydedilmedi.</p>
+                            );
+                        })()}
                     </div>
 
                     <div className="glass-panel p-6">
