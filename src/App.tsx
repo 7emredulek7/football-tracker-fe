@@ -11,6 +11,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { SettingsEditor } from './pages/admin/SettingsEditor';
 import { MatchEditor } from './pages/admin/MatchEditor';
 import { MatchEvents } from './pages/admin/matches/MatchEvents';
+import { MatchEditPage } from './pages/admin/MatchEditPage';
 import { PlayerDashboard } from './pages/player/PlayerDashboard';
 import { PlayerRateMatch } from './pages/player/PlayerRateMatch';
 
@@ -71,6 +72,12 @@ function AppRoutes() {
         <Route path="admin/matches/:id/events" element={
           <ProtectedRoute>
             <MatchEvents />
+          </ProtectedRoute>
+        } />
+
+        <Route path="admin/matches/:id/edit" element={
+          <ProtectedRoute>
+            <MatchEditPage />
           </ProtectedRoute>
         } />
 

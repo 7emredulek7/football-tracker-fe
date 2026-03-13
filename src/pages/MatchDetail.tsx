@@ -4,7 +4,7 @@ import { apiClient } from '../api/client';
 import { FormationGrid } from '../components/FormationGrid';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
@@ -90,9 +90,14 @@ export const MatchDetail = () => {
                     ← Geri Dön
                 </button>
                 {isOwner && (
-                    <button onClick={handleDeleteMatch} className="btn-secondary px-3 py-1.5 text-sm inline-flex border border-red-500/30 text-danger hover:bg-red-500/10 hover:border-red-500/50 transition-colors">
-                        <Trash2 size={16} className="mr-2" /> Maçı Sil
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={() => navigate(`/admin/matches/${id}/edit`)} className="btn-secondary px-3 py-1.5 text-sm inline-flex border border-white/20 hover:bg-white/10 transition-colors">
+                            <Pencil size={16} className="mr-2" /> Maçı Düzenle
+                        </button>
+                        <button onClick={handleDeleteMatch} className="btn-secondary px-3 py-1.5 text-sm inline-flex border border-red-500/30 text-danger hover:bg-red-500/10 hover:border-red-500/50 transition-colors">
+                            <Trash2 size={16} className="mr-2" /> Maçı Sil
+                        </button>
+                    </div>
                 )}
             </div>
 
