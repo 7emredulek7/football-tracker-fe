@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck, Link2, UserCheck } from 'lucide-react';
+import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck, Link2, UserCheck, Star, CheckCircle } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertDialog } from '../../components/AlertDialog';
 
 export const AdminDashboard = () => {
-    const { isOwner, playerId, login } = useAuth();
+    const { isOwner, playerId, token, login } = useAuth();
     const [players, setPlayers] = useState<any[]>([]);
+    const [myMatches, setMyMatches] = useState<any[]>([]);
     const [showAddPlayer, setShowAddPlayer] = useState(false);
     const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', number: '', isGuest: false });
 
@@ -41,7 +42,17 @@ export const AdminDashboard = () => {
 
     useEffect(() => {
         fetchPlayers();
-    }, []);
+        if (playerId) {
+            apiClient.get('/matches')
+                .then((data: any[]) => {
+                    const matches = (data || [])
+                        .filter((m: any) => m.lineup?.some((e: any) => e.playerId === playerId))
+                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setMyMatches(matches);
+                })
+                .catch(console.error);
+        }
+    }, [playerId]);
 
     const handleAddPlayer = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -123,6 +134,11 @@ export const AdminDashboard = () => {
         } catch (err: any) {
             setAlertMessage(err.message || 'Hesap bağlanamadı.');
         }
+    };
+
+    const hasRated = (match: any) => {
+        const userId = getUserIdFromToken(token);
+        return match.ratings?.some((r: any) => r.userId === userId);
     };
 
     return (
@@ -225,6 +241,60 @@ export const AdminDashboard = () => {
                         </div>
                     </form>
                     <button onClick={() => setShowAddPlayer(false)} className="btn-secondary mt-4">İptal</button>
+                </div>
+            )}
+
+            {playerId && myMatches.length > 0 && (
+                <div className="mb-12">
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <Star size={24} className="text-primary" />
+                        Maç Puanlamaları
+                    </h2>
+                    <div className="glass-panel overflow-x-auto p-4 sm:p-6">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-white/10">
+                                    <th className="p-3 text-slate-400 font-medium">Maç</th>
+                                    <th className="p-3 text-slate-400 font-medium">Tarih</th>
+                                    <th className="p-3 text-slate-400 font-medium">Sonuç</th>
+                                    <th className="p-3 text-slate-400 font-medium text-right">Puanlama</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {myMatches.map((m: any) => (
+                                    <tr key={m.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <td className="p-3 font-bold">vs {m.opponent}</td>
+                                        <td className="p-3 text-slate-400 text-sm">
+                                            {new Date(m.date).toLocaleDateString('tr-TR')}
+                                        </td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                                m.result === 'Win' ? 'bg-green-500/20 text-primary' :
+                                                m.result === 'Loss' ? 'bg-red-500/20 text-danger' :
+                                                'bg-slate-500/20 text-slate-400'
+                                            }`}>
+                                                {m.result === 'Win' ? 'Galibiyet' : m.result === 'Loss' ? 'Mağlubiyet' : 'Beraberlik'}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-right">
+                                            {hasRated(m) ? (
+                                                <span className="flex items-center justify-end gap-1 text-sm text-primary">
+                                                    <CheckCircle size={14} /> Puanlandı
+                                                </span>
+                                            ) : (
+                                                <Link
+                                                    to={`/admin/matches/${m.id}/rate`}
+                                                    className="flex items-center justify-end gap-1 text-sm text-accent hover:text-blue-300 transition-colors"
+                                                >
+                                                    <Star size={14} /> Puanla
+                                                </Link>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -331,3 +401,14 @@ export const AdminDashboard = () => {
         </div>
     );
 };
+
+function getUserIdFromToken(token: string | null): string | null {
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded.userId || null;
+    } catch {
+        return null;
+    }
+}

@@ -31,6 +31,14 @@ const PlayerRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AnyAuthRoute = ({ children }: { children: React.ReactNode }) => {
+  const { token } = useAuth();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
 function AppRoutes() {
   return (
     <Routes>
@@ -64,6 +72,12 @@ function AppRoutes() {
           <ProtectedRoute>
             <MatchEvents />
           </ProtectedRoute>
+        } />
+
+        <Route path="admin/matches/:id/rate" element={
+          <AnyAuthRoute>
+            <PlayerRateMatch />
+          </AnyAuthRoute>
         } />
 
         {/* Protected Player Routes */}

@@ -5,7 +5,7 @@ import { apiClient } from '../../api/client';
 
 export const PlayerRateMatch = () => {
     const { id } = useParams<{ id: string }>();
-    const { playerId } = useAuth();
+    const { playerId, isOwner } = useAuth();
     const navigate = useNavigate();
 
     const [match, setMatch] = useState<any>(null);
@@ -42,7 +42,7 @@ export const PlayerRateMatch = () => {
         try {
             const scoreList = Object.entries(scores).map(([playerId, score]) => ({ playerId, score }));
             await apiClient.post(`/matches/${id}/ratings`, { scores: scoreList });
-            navigate('/player');
+            navigate(isOwner ? '/admin' : '/player');
         } catch (err: any) {
             setError(err.message || 'Puanlama gönderilemedi.');
         } finally {
@@ -59,7 +59,7 @@ export const PlayerRateMatch = () => {
             <div className="max-w-[600px] mx-auto mt-8">
                 <div className="glass-panel text-center p-8">
                     <p className="text-danger">{error}</p>
-                    <button onClick={() => navigate('/player')} className="btn-secondary mt-4">Geri Dön</button>
+                    <button onClick={() => navigate(isOwner ? '/admin' : '/player')} className="btn-secondary mt-4">Geri Dön</button>
                 </div>
             </div>
         );
@@ -70,7 +70,7 @@ export const PlayerRateMatch = () => {
             <div className="max-w-[600px] mx-auto mt-8">
                 <div className="glass-panel text-center p-8">
                     <p className="text-slate-400">Bu maçın kadrosunda yer almıyorsun.</p>
-                    <button onClick={() => navigate('/player')} className="btn-secondary mt-4">Geri Dön</button>
+                    <button onClick={() => navigate(isOwner ? '/admin' : '/player')} className="btn-secondary mt-4">Geri Dön</button>
                 </div>
             </div>
         );
@@ -113,7 +113,7 @@ export const PlayerRateMatch = () => {
                     <button type="submit" className="btn-primary flex-1" disabled={submitting}>
                         {submitting ? 'Gönderiliyor...' : 'Puanlamaları Gönder'}
                     </button>
-                    <button type="button" onClick={() => navigate('/player')} className="btn-secondary">
+                    <button type="button" onClick={() => navigate(isOwner ? '/admin' : '/player')} className="btn-secondary">
                         İptal
                     </button>
                 </div>

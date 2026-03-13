@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'https://football-tracker-be.onrender.com/api';
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 export const apiClient = {
     async request(endpoint: string, options: RequestInit = {}) {

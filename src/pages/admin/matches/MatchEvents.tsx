@@ -15,8 +15,6 @@ export const MatchEvents = () => {
     const [goalsAgainst, setGoalsAgainst] = useState(0);
     const [playerStats, setPlayerStats] = useState<Record<string, { goals: number; assists: number }>>({});
 
-    const [ratings, setRatings] = useState<Record<string, number>>({});
-
     const [isSaving, setIsSaving] = useState(false);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
@@ -32,13 +30,10 @@ export const MatchEvents = () => {
 
                 // initialize default rating 6 and zero goals/assists for players who played
                 if (m && m.lineup) {
-                    const initRatings: Record<string, number> = {};
                     const initStats: Record<string, { goals: number; assists: number }> = {};
                     m.lineup.forEach((l: any) => {
-                        initRatings[l.playerId] = 6;
                         initStats[l.playerId] = { goals: 0, assists: 0 };
                     });
-                    setRatings({ ...initRatings });
                     setPlayerStats({ ...initStats });
                 }
             } catch (err) {
@@ -72,16 +67,6 @@ export const MatchEvents = () => {
             if (expandedEvents.length > 0) {
                 await apiClient.post(`/matches/${id}/events`, expandedEvents);
             }
-
-            // 3. Save ratings
-            const scoresArray = Object.keys(ratings).map(pId => ({
-                playerId: pId,
-                score: ratings[pId]
-            }));
-
-            await apiClient.post(`/matches/${id}/ratings`, {
-                scores: scoresArray
-            });
 
             navigate(`/match/${id}`);
         } catch (err) {
@@ -173,30 +158,6 @@ export const MatchEvents = () => {
                                         className="w-full p-2 text-center bg-white/10 text-white border border-white/20 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-bold text-xl transition-all"
                                     />
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Part 3: Ratings */}
-            <div className="glass-panel mb-8">
-                <h2 className="text-xl font-bold mb-6 border-b border-white/10 pb-2">
-                    Kadroyu Puanla (0-10)
-                </h2>
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-                    {activePlayers.map(p => (
-                        <div key={p.id} className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                            <span className="font-semibold">{p.firstName} {p.lastName}</span>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="10"
-                                    value={ratings[p.id]}
-                                    onChange={e => setRatings({ ...ratings, [p.id]: parseInt(e.target.value) || 0 })}
-                                    className="w-16 p-2 text-center bg-white/10 text-white border border-white/20 rounded-lg outline-none focus:border-primary font-bold text-lg"
-                                />
                             </div>
                         </div>
                     ))}
