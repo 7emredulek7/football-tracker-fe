@@ -23,7 +23,7 @@ export const PlayerRateMatch = () => {
             setMatch(matchData);
 
             const lineupIds = new Set((matchData.lineup || []).map((e: any) => e.playerId));
-            const lineupPlayers = (playersData || []).filter((p: any) => lineupIds.has(p.id));
+            const lineupPlayers = (playersData || []).filter((p: any) => lineupIds.has(p.id) && p.id !== playerId);
             setPlayers(lineupPlayers);
 
             const initial: Record<string, number> = {};
@@ -93,9 +93,6 @@ export const PlayerRateMatch = () => {
                         <div key={p.id} className="flex items-center justify-between gap-4">
                             <span className="font-semibold min-w-[140px]">
                                 {p.firstName} {p.lastName}
-                                {p.id === playerId && (
-                                    <span className="ml-2 text-xs text-slate-500">(sen)</span>
-                                )}
                             </span>
                             <div className="flex items-center gap-3 flex-1">
                                 <input
