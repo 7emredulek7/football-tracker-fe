@@ -19,6 +19,13 @@ export const apiClient = {
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('playerId');
+                window.location.href = '/login';
+                return;
+            }
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
