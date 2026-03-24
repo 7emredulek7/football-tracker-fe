@@ -14,6 +14,7 @@ import { MatchEvents } from './pages/admin/matches/MatchEvents';
 import { MatchEditPage } from './pages/admin/MatchEditPage';
 import { PlayerDashboard } from './pages/player/PlayerDashboard';
 import { PlayerRateMatch } from './pages/player/PlayerRateMatch';
+import { WatcherRatePage } from './pages/WatcherRatePage';
 
 // Route Guards
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -43,6 +44,9 @@ const AnyAuthRoute = ({ children }: { children: React.ReactNode }) => {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public standalone pages (no Layout nav) */}
+      <Route path="rate/:token" element={<WatcherRatePage />} />
+
       <Route path="/" element={<Layout />}>
         {/* Public Routes */}
         <Route index element={<Home />} />

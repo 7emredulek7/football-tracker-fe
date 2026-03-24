@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { FormationGrid } from '../../components/FormationGrid';
 import { AlertDialog } from '../../components/AlertDialog';
+import { WatcherManager } from '../../components/WatcherManager';
 
 export const MatchEditor = () => {
     const [players, setPlayers] = useState<any[]>([]);
@@ -16,6 +17,8 @@ export const MatchEditor = () => {
     const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
+    const [createdMatchId, setCreatedMatchId] = useState<string | null>(null);
+    const [watchers, setWatchers] = useState<{ name: string; token: string; used: boolean }[]>([]);
 
     const navigate = useNavigate();
 
@@ -75,14 +78,43 @@ export const MatchEditor = () => {
                 score: { for: 0, against: 0 },
                 result: 'Draw' // temporary
             });
-            // Navigate to post-match event entry screen
-            navigate(`/admin/matches/${res.id}/events`);
+            // Show watcher step before navigating to events
+            setCreatedMatchId(res.id);
+            setIsSaving(false);
         } catch (err) {
             console.error('Failed to create match', err);
             setAlertMessage('Maç oluşturulamadı.');
             setIsSaving(false);
         }
     };
+
+    // After match creation: show watcher step
+    if (createdMatchId) {
+        return (
+            <div>
+                <div className="page-header mb-8">
+                    <h1 className="page-title">İzleyici Ekle</h1>
+                    <p className="text-slate-400 mt-1">Maçı izleyen kişileri ekleyin veya bu adımı atlayın.</p>
+                </div>
+
+                <div className="mb-6">
+                    <WatcherManager
+                        matchId={createdMatchId}
+                        watchers={watchers}
+                        onWatchersChange={setWatchers}
+                    />
+                </div>
+
+                <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => navigate(`/admin/matches/${createdMatchId}/events`)}
+                >
+                    Skor Girişine İlerle →
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -138,38 +170,38 @@ export const MatchEditor = () => {
                 </div>
 
                 <div className="glass-panel self-start">
-                    <h2 className="text-xl font-bold mb-4 border-b border-white/10 pb-2">
-                        {selectedPosition ? `${selectedPosition} Pozisyonunu Değiştir` : 'Seçmek için tıkla'}
-                    </h2>
-
                     {selectedPosition ? (
-                        <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2">
-                            <button
-                                onClick={clearPosition}
-                                className="p-3 bg-red-500/10 text-danger border border-red-500/20 rounded-lg text-left cursor-pointer mb-4 hover:bg-red-500/20 transition-colors"
-                            >
-                                Pozisyonu temizle
-                            </button>
+                        <>
+                            <h2 className="text-xl font-bold mb-4 border-b border-white/10 pb-2">
+                                {selectedPosition} Pozisyonunu Değiştir
+                            </h2>
+                            <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2">
+                                <button
+                                    onClick={clearPosition}
+                                    className="p-3 bg-red-500/10 text-danger border border-red-500/20 rounded-lg text-left cursor-pointer mb-4 hover:bg-red-500/20 transition-colors"
+                                >
+                                    Pozisyonu temizle
+                                </button>
 
-                            {players.map(p => {
-                                const isAssigned = lineup.some(l => l.playerId === p.id && l.position !== selectedPosition);
-                                return (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => handleAssignPlayer(p.id)}
-                                        className={`p-3 rounded-lg text-left cursor-pointer flex justify-between items-center transition-colors
-                      ${isAssigned ? 'bg-white/5 text-slate-400 opacity-50' : 'bg-white/10 hover:bg-white/20 text-white'}
-                    `}
-                                    >
-                                        <span className="font-medium">{p.firstName} {p.lastName}</span>
-                                        <span className="text-primary font-bold">#{p.number}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
+                                {players.map(p => {
+                                    const isAssigned = lineup.some(l => l.playerId === p.id && l.position !== selectedPosition);
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => handleAssignPlayer(p.id)}
+                                            className={`p-3 rounded-lg text-left cursor-pointer flex justify-between items-center transition-colors
+                                                ${isAssigned ? 'bg-white/5 text-slate-400 opacity-50' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                                        >
+                                            <span className="font-medium">{p.firstName} {p.lastName}</span>
+                                            <span className="text-primary font-bold">#{p.number}</span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </>
                     ) : (
-                        <p className="text-slate-400 text-sm leading-relaxed">
-                            Bugün biri eksik mi? Bir misafir veya yedek oyuncu seçmek için pozisyona tıklayın.
+                        <p className="text-slate-500 text-sm leading-relaxed">
+                            Kadroyu ayarlamak için bir pozisyona tıklayın. İzleyiciler maç oluşturulduktan sonra eklenebilir.
                         </p>
                     )}
                 </div>
