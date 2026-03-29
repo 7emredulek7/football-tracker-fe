@@ -82,6 +82,34 @@ export const MatchDetail = () => {
             });
         });
     }
+    playerAverages.sort((a, b) => b.score - a.score);
+    const mvpPlayerId = playerAverages.length > 0 ? playerAverages[0].playerId : null;
+
+    // Compute per-player goals/assists for highlighting
+    const matchGoalAssistStats: Record<string, { goals: number; assists: number }> = {};
+    (match.events || []).forEach((ev: any) => {
+        if (ev.type === 'goal') {
+            if (!matchGoalAssistStats[ev.playerId]) matchGoalAssistStats[ev.playerId] = { goals: 0, assists: 0 };
+            matchGoalAssistStats[ev.playerId].goals++;
+            if (ev.assistPlayerId) {
+                if (!matchGoalAssistStats[ev.assistPlayerId]) matchGoalAssistStats[ev.assistPlayerId] = { goals: 0, assists: 0 };
+                matchGoalAssistStats[ev.assistPlayerId].assists++;
+            }
+        } else if (ev.type === 'assist') {
+            if (!matchGoalAssistStats[ev.playerId]) matchGoalAssistStats[ev.playerId] = { goals: 0, assists: 0 };
+            matchGoalAssistStats[ev.playerId].assists++;
+        }
+    });
+    const gaEntries = Object.entries(matchGoalAssistStats);
+    let topContributorId: string | null = null;
+    let maxContributions = 0;
+    gaEntries.forEach(([pid, s]) => {
+        const total = s.goals + s.assists;
+        if (total > maxContributions) {
+            maxContributions = total;
+            topContributorId = pid;
+        }
+    });
 
     return (
         <div className="max-w-[1000px] mx-auto">
@@ -175,38 +203,24 @@ export const MatchDetail = () => {
                 <div className="flex flex-col gap-8">
                     <div className="glass-panel p-6">
                         <h2 className="text-lg font-bold mb-4 border-b border-white/10 pb-2">Gol ve Asistler</h2>
-                        {(() => {
-                            const stats: Record<string, { goals: number; assists: number }> = {};
-                            (match.events || []).forEach((ev: any) => {
-                                if (ev.type === 'goal') {
-                                    if (!stats[ev.playerId]) stats[ev.playerId] = { goals: 0, assists: 0 };
-                                    stats[ev.playerId].goals++;
-                                    if (ev.assistPlayerId) {
-                                        if (!stats[ev.assistPlayerId]) stats[ev.assistPlayerId] = { goals: 0, assists: 0 };
-                                        stats[ev.assistPlayerId].assists++;
-                                    }
-                                } else if (ev.type === 'assist') {
-                                    if (!stats[ev.playerId]) stats[ev.playerId] = { goals: 0, assists: 0 };
-                                    stats[ev.playerId].assists++;
-                                }
-                            });
-                            const entries = Object.entries(stats);
-                            return entries.length > 0 ? (
-                                <ul className="flex flex-col gap-2">
-                                    {entries.map(([pid, s]) => (
-                                        <li key={pid} className="flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/5">
-                                            <span className="font-semibold text-slate-100">{getPlayerName(pid)}</span>
-                                            <div className="flex gap-3 text-sm font-bold">
-                                                {s.goals > 0 && <span className="text-success">⚽ {s.goals}</span>}
-                                                {s.assists > 0 && <span className="text-primary">🎯 {s.assists}</span>}
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-slate-400 text-sm italic">Gol kaydedilmedi.</p>
-                            );
-                        })()}
+                        {gaEntries.length > 0 ? (
+                            <ul className="flex flex-col gap-2">
+                                {gaEntries.map(([pid, s]) => (
+                                    <li key={pid} className={`flex justify-between items-center p-3 rounded-lg ${pid === topContributorId ? 'golden-glow border border-amber-400/30 bg-amber-500/5' : 'bg-white/5 border border-white/5'}`}>
+                                        <span className="font-semibold text-slate-100">
+                                            {pid === topContributorId && <span className="golden-glow-text font-bold mr-2">⭐</span>}
+                                            {getPlayerName(pid)}
+                                        </span>
+                                        <div className="flex gap-3 text-sm font-bold">
+                                            {s.goals > 0 && <span className="text-success">⚽ {s.goals}</span>}
+                                            {s.assists > 0 && <span className="text-primary">🎯 {s.assists}</span>}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-slate-400 text-sm italic">Gol kaydedilmedi.</p>
+                        )}
                     </div>
 
                     <div className="glass-panel p-6">
@@ -214,9 +228,12 @@ export const MatchDetail = () => {
                         {playerAverages.length > 0 ? (
                             <ul className="flex flex-col gap-2">
                                 {playerAverages.map((r: any, i: number) => (
-                                    <li key={i} className="flex justify-between items-center py-2 px-3 rounded hover:bg-white/5 transition-colors">
-                                        <span className="font-medium">{getPlayerName(r.playerId)}</span>
-                                        <span className="bg-slate-900 px-3 py-1 rounded font-bold text-success border border-white/10">
+                                    <li key={i} className={`flex justify-between items-center py-2 px-3 rounded transition-colors ${r.playerId === mvpPlayerId ? 'golden-glow border border-amber-400/30 bg-amber-500/5' : 'hover:bg-white/5'}`}>
+                                        <span className="font-medium">
+                                            {r.playerId === mvpPlayerId && <span className="golden-glow-text font-bold mr-2">⭐ MVP</span>}
+                                            {getPlayerName(r.playerId)}
+                                        </span>
+                                        <span className={`px-3 py-1 rounded font-bold border ${r.playerId === mvpPlayerId ? 'bg-amber-900/30 text-amber-400 border-amber-400/30' : 'bg-slate-900 text-success border-white/10'}`}>
                                             {r.score.toFixed(1)}
                                         </span>
                                     </li>
