@@ -15,6 +15,7 @@ import { MatchEditPage } from './pages/admin/MatchEditPage';
 import { PlayerDashboard } from './pages/player/PlayerDashboard';
 import { PlayerRateMatch } from './pages/player/PlayerRateMatch';
 import { WatcherRatePage } from './pages/WatcherRatePage';
+import { GuestRatePage } from './pages/GuestRatePage';
 
 // Route Guards
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -46,6 +47,7 @@ function AppRoutes() {
     <Routes>
       {/* Public standalone pages (no Layout nav) */}
       <Route path="rate/:token" element={<WatcherRatePage />} />
+      <Route path="guest-rate/:token" element={<GuestRatePage />} />
 
       <Route path="/" element={<Layout />}>
         {/* Public Routes */}

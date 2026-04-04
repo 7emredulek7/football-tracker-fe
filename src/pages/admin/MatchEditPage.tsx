@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client';
 import { FormationGrid } from '../../components/FormationGrid';
 import { AlertDialog } from '../../components/AlertDialog';
 import { WatcherManager } from '../../components/WatcherManager';
+import { GuestRatingManager } from '../../components/GuestRatingManager';
 
 export const MatchEditPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,10 +18,14 @@ export const MatchEditPage = () => {
     const [goalsAgainst, setGoalsAgainst] = useState(0);
     const [playerStats, setPlayerStats] = useState<Record<string, { goals: number; assists: number }>>({});
     const [watchers, setWatchers] = useState<{ name: string; token: string; used: boolean }[]>([]);
+    const [guestRatingTokens, setGuestRatingTokens] = useState<{ playerId: string; playerName: string; token: string; used: boolean }[]>([]);
 
     const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [alertMessage, setAlertMessage] = useState<string | null>(null);
+
+    // Track whether lineup has guest players
+    const [hasGuests, setHasGuests] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -48,6 +53,12 @@ export const MatchEditPage = () => {
                 });
                 setPlayerStats(stats);
                 setWatchers(match.watchers || []);
+                setGuestRatingTokens(match.guestRatingTokens || []);
+
+                // Check if any lineup players are guests
+                const lineupIds = new Set((match.lineup || []).map((l: any) => l.playerId));
+                const guests = (p || []).some((pl: any) => lineupIds.has(pl.id) && pl.isGuest);
+                setHasGuests(guests);
             } catch (err) {
                 console.error('Failed to load match for editing', err);
             }
@@ -72,12 +83,24 @@ export const MatchEditPage = () => {
             [playerId]: prev[playerId] ?? { goals: 0, assists: 0 },
         }));
 
+        // Recheck for guests
+        const lineupIds = new Set(newLineup.map(l => l.playerId));
+        const guests = players.some(p => lineupIds.has(p.id) && p.isGuest);
+        setHasGuests(guests);
+
         setSelectedPosition(null);
     };
 
     const clearPosition = () => {
         if (!selectedPosition) return;
-        setLineup(lineup.filter(l => l.position !== selectedPosition));
+        const newLineup = lineup.filter(l => l.position !== selectedPosition);
+        setLineup(newLineup);
+
+        // Recheck for guests
+        const lineupIds = new Set(newLineup.map(l => l.playerId));
+        const guests = players.some(p => lineupIds.has(p.id) && p.isGuest);
+        setHasGuests(guests);
+
         setSelectedPosition(null);
     };
 
@@ -229,13 +252,24 @@ export const MatchEditPage = () => {
                                     })}
                                 </div>
                             </>
-                        ) : id ? (
-                            <WatcherManager
-                                matchId={id}
-                                watchers={watchers}
-                                onWatchersChange={setWatchers}
-                            />
-                        ) : null}
+                        ) : (
+                            <div className="space-y-8">
+                                {id && (
+                                    <WatcherManager
+                                        matchId={id}
+                                        watchers={watchers}
+                                        onWatchersChange={setWatchers}
+                                    />
+                                )}
+                                {id && hasGuests && (
+                                    <GuestRatingManager
+                                        matchId={id}
+                                        guestRatingTokens={guestRatingTokens}
+                                        onTokensChange={setGuestRatingTokens}
+                                    />
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
