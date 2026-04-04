@@ -1,51 +1,45 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { PlayerCard } from '../components/PlayerCard';
 import { MatchRow } from '../components/MatchRow';
-import { computeWeeklyStars } from '../utils/weekStats';
 import { Trophy, Target, Sparkles } from 'lucide-react';
+
+interface WeeklyStars {
+    hasMatches: boolean;
+    playerOfWeek: { playerId: string; avgRating: number } | null;
+    topScorer: { playerId: string; goals: number } | null;
+    topAssister: { playerId: string; assists: number } | null;
+}
 
 export const Home = () => {
     const [activeTab, setActiveTab] = useState<'roster' | 'matches'>('roster');
     const [players, setPlayers] = useState<any[]>([]);
     const [matches, setMatches] = useState<any[]>([]);
+    const [weeklyStars, setWeeklyStars] = useState<WeeklyStars | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [playersRes, matchesRes] = await Promise.all([
-                    apiClient.get('/players'),
-                    apiClient.get('/matches')
+                const [playersWithStats, matchesRes, starsRes] = await Promise.all([
+                    apiClient.get('/players/with-stats'),
+                    apiClient.get('/matches'),
+                    apiClient.get('/stats/weekly-stars'),
                 ]);
 
-                // Enhance players with stats
-                const playersWithStats = await Promise.all(
-                    (playersRes || []).map(async (p: any) => {
-                        try {
-                            const stats = await apiClient.get(`/stats/player/${p.id}`);
-                            return { ...p, stats };
-                        } catch {
-                            return { ...p, stats: { goals: 0, assists: 0, matchesPlayed: 0, averageRating: 0 } };
-                        }
-                    })
-                );
-
-                // Sort regular squad first, then guest
-                playersWithStats.sort((a, b) => {
+                const sorted = (playersWithStats || []).sort((a: any, b: any) => {
                     if (a.isGuest === b.isGuest) return a.number - b.number;
                     return a.isGuest ? 1 : -1;
                 });
+                setPlayers(sorted);
 
-                setPlayers(playersWithStats);
-
-                // Sort matches newest first
                 const sortedMatches = (matchesRes || []).sort((a: any, b: any) =>
                     new Date(b.date).getTime() - new Date(a.date).getTime()
                 );
                 setMatches(sortedMatches);
 
+                setWeeklyStars(starsRes);
             } catch (err) {
                 console.error("Failed to load home data", err);
             }
@@ -53,8 +47,6 @@ export const Home = () => {
 
         fetchData();
     }, []);
-
-    const weeklyStars = useMemo(() => computeWeeklyStars(matches), [matches]);
 
     const getPlayerName = (pid: string) => {
         const p = players.find((x: any) => x.id === pid);
@@ -68,7 +60,7 @@ export const Home = () => {
             </div>
 
             {/* Weekly Stars Section */}
-            {(matches.length > 0 || players.length > 0) && (
+            {weeklyStars && (matches.length > 0 || players.length > 0) && (
                 <div className="mb-8">
                     {!weeklyStars.hasMatches ? (
                         <div className="glass-panel text-center py-6">
