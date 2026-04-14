@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Home, User } from 'lucide-react';
+import { CalendarDays, LogOut, LayoutDashboard, Home, User } from 'lucide-react';
 
 export const Layout = () => {
     const { isOwner, isPlayer, logout } = useAuth();
@@ -27,6 +27,9 @@ export const Layout = () => {
                     <div className="flex gap-4 items-center">
                         <Link to="/" className="flex items-center gap-1 text-sm text-slate-400 hover:text-primary transition-colors">
                             <Home size={16} /> Ana Sayfa
+                        </Link>
+                        <Link to="/calendar" className="flex items-center gap-1 text-sm text-slate-400 hover:text-primary transition-colors">
+                            <CalendarDays size={16} /> Takvim
                         </Link>
 
                         {isOwner ? (

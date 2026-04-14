@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck, Link2, UserCheck, Star, CheckCircle } from 'lucide-react';
+import { Settings, UserPlus, Play, Trophy, Edit2, Trash2, Mail, Copy, CheckCheck, Link2, UserCheck, Star, CheckCircle, CalendarDays } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertDialog } from '../../components/AlertDialog';
@@ -222,6 +222,14 @@ export const AdminDashboard = () => {
                     </div>
                     <h3 className="text-xl font-bold">Varsayılan Kadro</h3>
                     <p className="text-slate-400 text-sm">Otomatik doldurulacak temel dizilişi yapılandır.</p>
+                </Link>
+
+                <Link to="/admin/calendar" className="glass-panel flex flex-col items-center justify-center gap-4 p-8 text-center no-underline hover:-translate-y-1 transition-transform cursor-pointer">
+                    <div className="bg-amber-500/20 text-amber-300 p-4 rounded-full">
+                        <CalendarDays size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold">Takvim Yönetimi</h3>
+                    <p className="text-slate-400 text-sm">Maç taleplerini değerlendir ve takvime maç ekle.</p>
                 </Link>
 
                 <div
