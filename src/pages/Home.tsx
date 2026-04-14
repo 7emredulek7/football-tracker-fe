@@ -28,11 +28,7 @@ export const Home = () => {
                     apiClient.get('/stats/weekly-stars'),
                 ]);
 
-                const sorted = (playersWithStats || []).sort((a: any, b: any) => {
-                    if (a.isGuest === b.isGuest) return a.number - b.number;
-                    return a.isGuest ? 1 : -1;
-                });
-                setPlayers(sorted);
+                setPlayers(playersWithStats || []);
 
                 const sortedMatches = (matchesRes || []).sort((a: any, b: any) =>
                     new Date(b.date).getTime() - new Date(a.date).getTime()
