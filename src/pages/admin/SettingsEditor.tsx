@@ -129,7 +129,9 @@ export const SettingsEditor = () => {
                     `}
                                     >
                                         <span className="font-medium">{p.firstName} {p.lastName}</span>
-                                        <span className="text-primary font-bold">#{p.number}</span>
+                                        {!p.isGuest && p.number != null && (
+                                            <span className="text-primary font-bold">#{p.number}</span>
+                                        )}
                                     </button>
                                 )
                             })}

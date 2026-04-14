@@ -5,7 +5,7 @@ interface PlayerCardProps {
         id: string;
         firstName: string;
         lastName: string;
-        number: number;
+        number?: number;
         isGuest: boolean;
     };
     stats?: {
@@ -32,9 +32,11 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, stats, onClick }
                         {player.isGuest ? 'Misafir' : 'Kadro'}
                     </span>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl font-bold text-slate-400">
-                    {player.number}
-                </div>
+                {!player.isGuest && (
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl font-bold text-slate-400">
+                        {player.number ?? '-'}
+                    </div>
+                )}
             </div>
 
             {stats && (

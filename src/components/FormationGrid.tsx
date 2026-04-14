@@ -9,7 +9,8 @@ interface Player {
     id: string;
     firstName: string;
     lastName: string;
-    number: number;
+    number?: number;
+    isGuest?: boolean;
 }
 
 interface FormationGridProps {
@@ -40,6 +41,11 @@ export const FormationGrid: React.FC<FormationGridProps> = ({
         return players.find(p => p.id === entry.playerId) || null;
     };
 
+    const getPlayerMarker = (player: Player) => {
+        if (!player.isGuest && player.number != null) return player.number;
+        return player.firstName.charAt(0).toUpperCase();
+    };
+
     return (
         <div className="bg-gradient-to-b from-primary/10 to-primary/5 border border-primary/20 rounded-2xl py-8 px-4 flex flex-col gap-10 relative overflow-hidden min-h-[600px] justify-between">
             {/* Field lines aesthetic */}
@@ -68,7 +74,7 @@ export const FormationGrid: React.FC<FormationGridProps> = ({
                                         : 'bg-white/10 border-white/20'
                                     }
                 `}>
-                                    {isActive ? player.number : '+'}
+                                    {isActive ? getPlayerMarker(player) : '+'}
                                 </div>
 
                                 <div className={`text-xs text-center px-1.5 py-0.5 rounded

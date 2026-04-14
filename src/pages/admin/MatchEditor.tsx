@@ -193,7 +193,9 @@ export const MatchEditor = () => {
                                                 ${isAssigned ? 'bg-white/5 text-slate-400 opacity-50' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                                         >
                                             <span className="font-medium">{p.firstName} {p.lastName}</span>
-                                            <span className="text-primary font-bold">#{p.number}</span>
+                                            {!p.isGuest && p.number != null && (
+                                                <span className="text-primary font-bold">#{p.number}</span>
+                                            )}
                                         </button>
                                     )
                                 })}

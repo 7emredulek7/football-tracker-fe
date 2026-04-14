@@ -6,6 +6,32 @@ import { apiClient } from '../../api/client';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertDialog } from '../../components/AlertDialog';
 
+type PlayerFormState = {
+    firstName: string;
+    lastName: string;
+    number: string;
+    isGuest: boolean;
+};
+
+const buildPlayerPayload = (player: PlayerFormState) => {
+    const payload: {
+        firstName: string;
+        lastName: string;
+        isGuest: boolean;
+        number?: number;
+    } = {
+        firstName: player.firstName,
+        lastName: player.lastName,
+        isGuest: player.isGuest,
+    };
+
+    if (!player.isGuest && player.number.trim()) {
+        payload.number = parseInt(player.number, 10);
+    }
+
+    return payload;
+};
+
 export const AdminDashboard = () => {
     const { isOwner, playerId, token, login } = useAuth();
     const [players, setPlayers] = useState<any[]>([]);
@@ -57,10 +83,7 @@ export const AdminDashboard = () => {
     const handleAddPlayer = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await apiClient.post('/players', {
-                ...newPlayer,
-                number: parseInt(newPlayer.number) || 0
-            });
+            await apiClient.post('/players', buildPlayerPayload(newPlayer));
             setShowAddPlayer(false);
             setNewPlayer({ firstName: '', lastName: '', number: '', isGuest: false });
             fetchPlayers();
@@ -72,16 +95,13 @@ export const AdminDashboard = () => {
 
     const handleEditClick = (p: any) => {
         setEditingPlayerId(p.id);
-        setEditPlayerObj({ firstName: p.firstName, lastName: p.lastName, number: p.number.toString(), isGuest: p.isGuest });
+        setEditPlayerObj({ firstName: p.firstName, lastName: p.lastName, number: p.number == null ? '' : p.number.toString(), isGuest: p.isGuest });
     };
 
     const handleSaveEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await apiClient.put(`/players/${editingPlayerId}`, {
-                ...editPlayerObj,
-                number: parseInt(editPlayerObj.number) || 0
-            });
+            await apiClient.put(`/players/${editingPlayerId}`, buildPlayerPayload(editPlayerObj));
             setEditingPlayerId(null);
             setEditPlayerObj(null);
             fetchPlayers();
@@ -228,12 +248,20 @@ export const AdminDashboard = () => {
                             <label className="block text-sm text-slate-400 mb-2">Soyad</label>
                             <input required className="input-field !mb-0" value={newPlayer.lastName} onChange={e => setNewPlayer({ ...newPlayer, lastName: e.target.value })} />
                         </div>
-                        <div>
-                            <label className="block text-sm text-slate-400 mb-2">Forma Numarası</label>
-                            <input required type="number" className="input-field !mb-0" value={newPlayer.number} onChange={e => setNewPlayer({ ...newPlayer, number: e.target.value })} />
-                        </div>
+                        {!newPlayer.isGuest && (
+                            <div>
+                                <label className="block text-sm text-slate-400 mb-2">Forma Numarası</label>
+                                <input required type="number" className="input-field !mb-0" value={newPlayer.number} onChange={e => setNewPlayer({ ...newPlayer, number: e.target.value })} />
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 pb-3">
-                            <input type="checkbox" id="isGuest" className="w-4 h-4" checked={newPlayer.isGuest} onChange={e => setNewPlayer({ ...newPlayer, isGuest: e.target.checked })} />
+                            <input
+                                type="checkbox"
+                                id="isGuest"
+                                className="w-4 h-4"
+                                checked={newPlayer.isGuest}
+                                onChange={e => setNewPlayer({ ...newPlayer, isGuest: e.target.checked, number: e.target.checked ? '' : newPlayer.number })}
+                            />
                             <label htmlFor="isGuest">Misafir Oyuncu</label>
                         </div>
                         <div>
@@ -328,12 +356,20 @@ export const AdminDashboard = () => {
                                                     <label className="block text-xs text-slate-400 mb-1">Soyad</label>
                                                     <input required className="input-field !mb-0 py-2 text-sm" value={editPlayerObj.lastName} onChange={e => setEditPlayerObj({ ...editPlayerObj, lastName: e.target.value })} />
                                                 </div>
-                                                <div>
-                                                    <label className="block text-xs text-slate-400 mb-1">No</label>
-                                                    <input required type="number" className="input-field !mb-0 py-2 text-sm" value={editPlayerObj.number} onChange={e => setEditPlayerObj({ ...editPlayerObj, number: e.target.value })} />
-                                                </div>
+                                                {!editPlayerObj.isGuest && (
+                                                    <div>
+                                                        <label className="block text-xs text-slate-400 mb-1">No</label>
+                                                        <input required type="number" className="input-field !mb-0 py-2 text-sm" value={editPlayerObj.number} onChange={e => setEditPlayerObj({ ...editPlayerObj, number: e.target.value })} />
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-2 pb-2">
-                                                    <input type="checkbox" id="editGuest" className="w-4 h-4" checked={editPlayerObj.isGuest} onChange={e => setEditPlayerObj({ ...editPlayerObj, isGuest: e.target.checked })} />
+                                                    <input
+                                                        type="checkbox"
+                                                        id="editGuest"
+                                                        className="w-4 h-4"
+                                                        checked={editPlayerObj.isGuest}
+                                                        onChange={e => setEditPlayerObj({ ...editPlayerObj, isGuest: e.target.checked, number: e.target.checked ? '' : editPlayerObj.number })}
+                                                    />
                                                     <label htmlFor="editGuest" className="text-sm">Misafir</label>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -345,7 +381,7 @@ export const AdminDashboard = () => {
                                     ) : (
                                         <>
                                             <td className="p-2 sm:p-4 font-bold text-sm sm:text-base">{p.firstName} {p.lastName}</td>
-                                            <td className="p-2 sm:p-4 text-sm sm:text-base">{p.number}</td>
+                                            <td className="p-2 sm:p-4 text-sm sm:text-base">{p.isGuest ? '-' : (p.number ?? '-')}</td>
                                             <td className="p-2 sm:p-4">
                                                 <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold ${p.isGuest ? 'bg-blue-500/20 text-accent' : 'bg-green-500/20 text-primary'}`}>
                                                     {p.isGuest ? 'Misafir' : 'Kadro'}
