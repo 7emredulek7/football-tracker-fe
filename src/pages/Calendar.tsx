@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Send, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { MatchCalendar } from '../components/MatchCalendar';
 import type { CalendarMatch, CalendarRequestMarker } from '../components/MatchCalendar';
@@ -16,6 +17,7 @@ const toInputDate = (date: Date) => {
 const buildDateTimeIso = (date: string, hour: string) => new Date(`${date}T${hour}:00:00`).toISOString();
 
 export const Calendar = () => {
+    const navigate = useNavigate();
     const [matches, setMatches] = useState<CalendarMatch[]>([]);
     const [requests, setRequests] = useState<CalendarRequestMarker[]>([]);
     const [opponent, setOpponent] = useState('');
@@ -84,7 +86,12 @@ export const Calendar = () => {
         }
     };
 
-    const openRequestModal = (dateKey: string) => {
+    const openRequestModal = (dateKey: string, context: { matches: CalendarMatch[] }) => {
+        if (context.matches.length > 0) {
+            navigate(`/match/${context.matches[0].id}`);
+            return;
+        }
+
         setDate(dateKey);
         setMessage(null);
         setError(null);
@@ -106,6 +113,7 @@ export const Calendar = () => {
                     requests={requests}
                     title="Maç Takvimi"
                     emptyText="Seçili günde maç veya talep yok."
+                    getMatchHref={(match) => `/match/${match.id}`}
                     onDateSelect={openRequestModal}
                 />
             </div>

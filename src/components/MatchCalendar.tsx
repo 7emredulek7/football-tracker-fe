@@ -21,7 +21,14 @@ type MatchCalendarProps = {
     title?: string;
     emptyText?: string;
     getMatchHref?: (match: CalendarMatch) => string;
-    onDateSelect?: (dateKey: string) => void;
+    onDateSelect?: (
+        dateKey: string,
+        context: {
+            matches: CalendarMatch[];
+            requests: CalendarRequestMarker[];
+            isPastDay: boolean;
+        },
+    ) => void;
 };
 
 const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -104,8 +111,14 @@ export const MatchCalendar = ({
 
     const selectDate = (date: Date) => {
         const key = toDateKey(date);
+        const dayMatches = matchesByDate[key] || [];
+        const dayRequests = dayMatches.length > 0 ? [] : requestsByDate[key] || [];
         setSelectedKey(key);
-        onDateSelect?.(key);
+        onDateSelect?.(key, {
+            matches: dayMatches,
+            requests: dayRequests,
+            isPastDay: key < todayKey,
+        });
     };
 
     return (
@@ -138,6 +151,21 @@ export const MatchCalendar = ({
                 </div>
             </div>
 
+            <div className="flex flex-wrap gap-3 text-[11px] sm:text-xs text-slate-400 mb-3">
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-primary" />
+                    Yaklaşan maç
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-sky-300" />
+                    Geçmiş maç
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-amber-300" />
+                    Talep
+                </span>
+            </div>
+
             <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-1.5">
                 {weekDays.map((day) => (
                     <div key={day} className="text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase py-1">
@@ -156,14 +184,40 @@ export const MatchCalendar = ({
                     const isSelected = key === selectedKey;
                     const hasMatch = dayMatches.length > 0;
                     const hasRequest = dayRequests.length > 0;
+                    const isPastMatchDay = hasMatch && key < todayKey;
+                    const matchDayClass = isPastMatchDay
+                        ? 'border-sky-300/50 bg-sky-500/10'
+                        : 'border-primary/60 bg-emerald-500/10';
+                    const selectedDayClass = isSelected
+                        ? isPastMatchDay
+                            ? 'border-sky-300 bg-sky-500/15'
+                            : hasRequest && !hasMatch
+                                ? 'border-amber-300 bg-amber-500/15'
+                                : 'border-primary bg-emerald-500/15'
+                        : hasMatch
+                            ? matchDayClass
+                            : hasRequest
+                                ? 'border-amber-300/50 bg-amber-500/10'
+                                : 'border-white/10 bg-slate-900/35 hover:bg-white/5';
+                    const matchDotClass = isPastMatchDay ? 'bg-sky-300' : 'bg-primary';
+                    const matchChipClass = isPastMatchDay
+                        ? 'bg-sky-500/15 text-sky-300'
+                        : 'bg-primary/20 text-primary';
+                    const dateLabel = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'full' }).format(date);
+                    const dayLabel = [
+                        dateLabel,
+                        ...dayMatches.map((match) => `${match.opponent} maçı`),
+                        ...dayRequests.map((request) => `${request.opponent} talebi`),
+                    ].join(', ');
 
                     return (
                         <button
                             type="button"
                             key={key}
                             onClick={() => selectDate(date)}
+                            aria-label={dayLabel}
                             className={`min-h-[42px] sm:min-h-[62px] rounded-lg border p-1.5 text-left transition-colors overflow-hidden
-                                ${isSelected ? 'border-primary bg-emerald-500/15' : hasMatch ? 'border-primary/60 bg-emerald-500/10' : hasRequest ? 'border-amber-300/50 bg-amber-500/10' : 'border-white/10 bg-slate-900/35 hover:bg-white/5'}
+                                ${selectedDayClass}
                                 ${isCurrentMonth ? 'text-slate-50' : 'text-slate-600'}
                             `}
                         >
@@ -172,7 +226,7 @@ export const MatchCalendar = ({
                                     {date.getDate()}
                                 </span>
                                 {hasMatch && (
-                                    <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    <span className={`h-2 w-2 rounded-full shrink-0 ${matchDotClass}`} />
                                 )}
                                 {!hasMatch && hasRequest && (
                                     <span className="h-2 w-2 rounded-full bg-amber-300 shrink-0" />
@@ -180,7 +234,7 @@ export const MatchCalendar = ({
                             </div>
                             <div className="hidden sm:flex flex-col gap-0.5">
                                 {dayMatches.slice(0, 1).map((match) => (
-                                    <span key={match.id} className="truncate rounded bg-primary/20 px-1 py-0.5 text-[10px] text-primary">
+                                    <span key={match.id} className={`truncate rounded px-1 py-0.5 text-[10px] ${matchChipClass}`}>
                                         {[getMatchTime(match.date), match.opponent].filter(Boolean).join(' ')}
                                     </span>
                                 ))}
@@ -207,7 +261,7 @@ export const MatchCalendar = ({
                         {new Intl.DateTimeFormat('tr-TR', { dateStyle: 'full' }).format(new Date(`${selectedKey}T12:00:00`))}
                     </h3>
                     {selectedMatches.length > 0 && (
-                        <span className="px-2.5 py-1 rounded bg-emerald-500/15 text-primary text-xs font-bold">
+                        <span className={`px-2.5 py-1 rounded text-xs font-bold ${selectedKey < todayKey ? 'bg-sky-500/15 text-sky-300' : 'bg-emerald-500/15 text-primary'}`}>
                             {selectedMatches.length} maç
                         </span>
                     )}
@@ -224,11 +278,12 @@ export const MatchCalendar = ({
                     <div className="flex flex-col gap-2">
                         {selectedMatches.map((match) => {
                             const matchTime = getMatchTime(match.date);
+                            const isPastMatch = toDateKey(new Date(match.date)) < todayKey;
                             const content = (
-                                <div className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2">
+                                <div className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${isPastMatch ? 'bg-sky-500/10' : 'bg-white/5'}`}>
                                     <span className="font-semibold truncate">{match.opponent}</span>
                                     {matchTime && (
-                                        <span className="flex items-center gap-1 text-primary text-sm font-semibold shrink-0">
+                                        <span className={`flex items-center gap-1 text-sm font-semibold shrink-0 ${isPastMatch ? 'text-sky-300' : 'text-primary'}`}>
                                             <Clock size={15} />
                                             {matchTime}
                                         </span>

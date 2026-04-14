@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Check, Plus, RefreshCw, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Check, RefreshCw, X } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { MatchCalendar } from '../../components/MatchCalendar';
 import type { CalendarMatch } from '../../components/MatchCalendar';
@@ -52,6 +52,7 @@ const formatDateTime = (value: string) =>
 const effectiveRequestDate = (request: CalendarRequest) => request.scheduledDate || request.requestedDate;
 
 export const AdminCalendar = () => {
+    const navigate = useNavigate();
     const [requests, setRequests] = useState<CalendarRequest[]>([]);
     const [matches, setMatches] = useState<CalendarMatch[]>([]);
     const [drafts, setDrafts] = useState<Record<string, DateDraft>>({});
@@ -60,6 +61,7 @@ export const AdminCalendar = () => {
     const [hour, setHour] = useState('20');
     const [busyId, setBusyId] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const loadData = async () => {
@@ -108,6 +110,7 @@ export const AdminCalendar = () => {
                 date: buildDateTimeIso(date, hour),
             });
             setOpponent('');
+            setIsCreateModalOpen(false);
             await loadData();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Maç oluşturulamadı.');
@@ -116,32 +119,18 @@ export const AdminCalendar = () => {
         }
     };
 
-    const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
-        setBusyId(`${requestId}-${action}`);
+    const handleRequestAction = async (request: CalendarRequest, action: 'accept' | 'reject') => {
+        setBusyId(`${request.id}-${action}`);
         setError(null);
 
         try {
-            await apiClient.put(`/calendar/requests/${requestId}/${action}`, {});
+            const body = action === 'accept'
+                ? { date: buildDateTimeIso(getDraft(request).date, getDraft(request).hour) }
+                : {};
+            await apiClient.put(`/calendar/requests/${request.id}/${action}`, body);
             await loadData();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Talep güncellenemedi.');
-        } finally {
-            setBusyId(null);
-        }
-    };
-
-    const handleReschedule = async (request: CalendarRequest) => {
-        const draft = getDraft(request);
-        setBusyId(`${request.id}-reschedule`);
-        setError(null);
-
-        try {
-            await apiClient.put(`/calendar/requests/${request.id}/reschedule`, {
-                date: buildDateTimeIso(draft.date, draft.hour),
-            });
-            await loadData();
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Talep yeniden planlanamadı.');
         } finally {
             setBusyId(null);
         }
@@ -157,12 +146,24 @@ export const AdminCalendar = () => {
         }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    const openCreateMatchModal = (dateKey: string, context: { matches: CalendarMatch[] }) => {
+        if (context.matches.length > 0) {
+            navigate(`/match/${context.matches[0].id}`);
+            return;
+        }
+
+        setDate(dateKey);
+        setOpponent('');
+        setError(null);
+        setIsCreateModalOpen(true);
+    };
+
     return (
         <div>
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Takvim Yönetimi</h1>
-                    <p className="text-slate-400 mt-2">Maç taleplerini yönetin ve kabul edilmiş maç ekleyin.</p>
+                    <p className="text-slate-400 mt-2">Maç taleplerini yönetin veya takvimden gün seçerek maç ekleyin.</p>
                 </div>
             </div>
 
@@ -172,57 +173,65 @@ export const AdminCalendar = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-8 items-start mb-10">
-                <section className="glass-panel">
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                        <Plus size={24} className="text-primary" />
-                        Maç Ekle
-                    </h2>
-                    <form onSubmit={handleCreateMatch}>
-                        <label className="block text-sm text-slate-400 mb-2">Rakip takım</label>
-                        <input
-                            required
-                            className="input-field"
-                            value={opponent}
-                            onChange={(event) => setOpponent(event.target.value)}
-                            placeholder="Örn. Kırmızı Kaplanlar"
-                        />
-
-                        <label className="block text-sm text-slate-400 mb-2">Tarih</label>
-                        <input
-                            required
-                            type="date"
-                            className="input-field"
-                            value={date}
-                            onChange={(event) => setDate(event.target.value)}
-                        />
-
-                        <label className="block text-sm text-slate-400 mb-2">Saat</label>
-                        <select
-                            className="input-field"
-                            value={hour}
-                            onChange={(event) => setHour(event.target.value)}
-                        >
-                            {hours.map((option) => (
-                                <option key={option} value={option}>{option}:00</option>
-                            ))}
-                        </select>
-
-                        <button type="submit" className="btn-primary w-full" disabled={isCreating || !opponent.trim()}>
-                            {isCreating ? 'Ekleniyor...' : 'Kabul Edilmiş Maç Ekle'}
-                        </button>
-                    </form>
-                </section>
-
+            <div className="max-w-[760px] mb-10">
                 <MatchCalendar
                     matches={matches}
                     requests={calendarRequests}
                     title="Maç Takvimi"
                     emptyText="Seçili günde maç veya talep yok."
                     getMatchHref={(match) => `/match/${match.id}`}
-                    onDateSelect={setDate}
+                    onDateSelect={openCreateMatchModal}
                 />
             </div>
+
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <section className="glass-panel w-full max-w-[420px] p-5">
+                        <div className="flex items-start justify-between gap-4 mb-5">
+                            <div>
+                                <h2 className="text-2xl font-bold">Maç Ekle</h2>
+                                <p className="text-sm text-slate-400 mt-1">
+                                    {new Intl.DateTimeFormat('tr-TR', { dateStyle: 'full' }).format(new Date(`${date}T12:00:00`))}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-colors"
+                                onClick={() => setIsCreateModalOpen(false)}
+                                aria-label="Kapat"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateMatch}>
+                            <label className="block text-sm text-slate-400 mb-2">Rakip takım</label>
+                            <input
+                                required
+                                className="input-field"
+                                value={opponent}
+                                onChange={(event) => setOpponent(event.target.value)}
+                                placeholder="Örn. Kırmızı Kaplanlar"
+                            />
+
+                            <label className="block text-sm text-slate-400 mb-2">Saat</label>
+                            <select
+                                className="input-field"
+                                value={hour}
+                                onChange={(event) => setHour(event.target.value)}
+                            >
+                                {hours.map((option) => (
+                                    <option key={option} value={option}>{option}:00</option>
+                                ))}
+                            </select>
+
+                            <button type="submit" className="btn-primary w-full" disabled={isCreating || !opponent.trim()}>
+                                {isCreating ? 'Ekleniyor...' : 'Kabul Edilmiş Maç Ekle'}
+                            </button>
+                        </form>
+                    </section>
+                </div>
+            )}
 
             <section>
                 <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -262,7 +271,7 @@ export const AdminCalendar = () => {
 
                                     {canChange && (
                                         <div className="min-w-full lg:min-w-[460px]">
-                                            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto] gap-3 mb-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3 mb-3">
                                                 <input
                                                     type="date"
                                                     className="input-field !mb-0"
@@ -278,21 +287,13 @@ export const AdminCalendar = () => {
                                                         <option key={option} value={option}>{option}:00</option>
                                                     ))}
                                                 </select>
-                                                <button
-                                                    type="button"
-                                                    className="btn-secondary whitespace-nowrap"
-                                                    disabled={busyId === `${request.id}-reschedule`}
-                                                    onClick={() => handleReschedule(request)}
-                                                >
-                                                    Yeniden Planla
-                                                </button>
                                             </div>
                                             <div className="flex flex-wrap gap-3 justify-end">
                                                 <button
                                                     type="button"
                                                     className="btn-primary"
                                                     disabled={busyId === `${request.id}-accept`}
-                                                    onClick={() => handleRequestAction(request.id, 'accept')}
+                                                    onClick={() => handleRequestAction(request, 'accept')}
                                                 >
                                                     <Check size={18} />
                                                     Kabul Et
@@ -301,7 +302,7 @@ export const AdminCalendar = () => {
                                                     type="button"
                                                     className="bg-red-500/20 text-danger py-3 px-6 rounded-lg font-semibold inline-flex items-center justify-center gap-2 hover:bg-red-500/30 transition-colors disabled:opacity-50"
                                                     disabled={busyId === `${request.id}-reject`}
-                                                    onClick={() => handleRequestAction(request.id, 'reject')}
+                                                    onClick={() => handleRequestAction(request, 'reject')}
                                                 >
                                                     <X size={18} />
                                                     Reddet
